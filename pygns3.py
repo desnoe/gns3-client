@@ -99,6 +99,57 @@ class BaseObjectMetadata:
 
 @dataclass
 class TemplateMetadata(BaseObjectMetadata):
+    """Template Metadata
+
+    JSON example:
+
+    {
+        'adapter_type': 'e1000',
+        'adapters': 1,
+        'bios_image': '',
+        'boot_priority': 'c',
+        'builtin': False,
+        'category': 'guest',
+        'cdrom_image': '',
+        'compute_id': 'local',
+        'console_auto_start': False,
+        'console_type': 'telnet',
+        'cpu_throttling': 0,
+        'cpus': 1,
+        'create_config_disk': False,
+        'custom_adapters': [],
+        'default_name_format': '{name}-{0}',
+        'first_port_name': '',
+        'hda_disk_image': '',
+        'hda_disk_interface': 'none',
+        'hdb_disk_image': '',
+        'hdb_disk_interface': 'none',
+        'hdc_disk_image': '',
+        'hdc_disk_interface': 'none',
+        'hdd_disk_image': '',
+        'hdd_disk_interface': 'none',
+        'initrd': '',
+        'kernel_command_line': '',
+        'kernel_image': '',
+        'legacy_networking': False,
+        'linked_clone': True,
+        'mac_address': '',
+        'name': 'test_template',
+        'on_close': 'power_off',
+        'options': '',
+        'platform': 'i386',
+        'port_name_format': 'Ethernet{0}',
+        'port_segment_size': 0,
+        'process_priority': 'normal',
+        'qemu_path': '',
+        'ram': 256,
+        'replicate_network_connection_state': True,
+        'symbol': ':/symbols/qemu_guest.svg',
+        'template_id': 'b43cf702-ba26-45bd-8eae-339e6217565b',
+        'template_type': 'qemu',
+        'usage': ''
+    }
+    """
     template_id: Optional[str] = None
     template_type: Optional[str] = None
 
@@ -138,6 +189,7 @@ class TemplateMetadata(BaseObjectMetadata):
     properties: Optional[dict] = None
     port_name_format: Optional[str] = None
     port_segment_size: Optional[int] = None
+    ports_mapping: Optional[list] = None
     process_priority: Optional[str] = None
     qemu_path: Optional[str] = None
     ram: Optional[int] = None
@@ -148,6 +200,31 @@ class TemplateMetadata(BaseObjectMetadata):
 
 @dataclass
 class ProjectMetadata(BaseObjectMetadata):
+    """Project Metadata
+
+    JSON example:
+    {
+        'auto_close': False,
+        'auto_open': False,
+        'auto_start': False,
+        'drawing_grid_size': 25,
+        'filename': 'test_project.gns3',
+        'grid_size': 75,
+        'name': 'test_project',
+        'path': '/opt/gns3/projects/51424064-6ee6-49b3-8158-ad27a59eaaee',
+        'project_id': '51424064-6ee6-49b3-8158-ad27a59eaaee',
+        'scene_height': 1000,
+        'scene_width': 2000,
+        'show_grid': False,
+        'show_interface_labels': False,
+        'show_layers': False,
+        'snap_to_grid': False,
+        'status': 'opened',
+        'supplier': None,
+        'variables': None,
+        'zoom': 100
+    }
+    """
     _READONLY_ATTRIBUTES = 'status', 'project_id', 'filename'
 
     project_id: Optional[str] = None
@@ -173,6 +250,20 @@ class ProjectMetadata(BaseObjectMetadata):
 
 @dataclass
 class DrawingMetadata(BaseObjectMetadata):
+    """Drawing Metadata
+
+    JSON example:
+    {
+        'drawing_id': '4bcd27fc-e61a-4e26-80bd-689826830ccd',
+        'locked': False,
+        'project_id': '469ecdd2-b41b-4a2e-ac50-2da823481503',
+        'rotation': 0,
+        'svg': '<svg height="100" width="100" name="test_drawing"><rect fill="#ebecff" fill-opacity="1.0" height="100" width="100" /></svg>',
+        'x': 0,
+        'y': 0,
+        'z': 2
+    }
+    """
     _READONLY_ATTRIBUTES = 'name', 'project_id'
 
     drawing_id: Optional[str] = None
@@ -186,10 +277,11 @@ class DrawingMetadata(BaseObjectMetadata):
     z: Optional[int] = None
 
     def _import_svg_field(self) -> None:
-        xml = ElementTree.fromstring(self.svg)
-        if 'name' in xml.attrib and xml.attrib['name']:
-            self.name = xml.attrib.pop('name')
-            self.svg = ElementTree.tostring(xml, encoding='unicode')
+        if self.svg:
+            xml = ElementTree.fromstring(self.svg)
+            if 'name' in xml.attrib and xml.attrib['name']:
+                self.name = xml.attrib.pop('name')
+                self.svg = ElementTree.tostring(xml, encoding='unicode')
 
     def _export_svg_field(self) -> None:
         xml = ElementTree.fromstring(self.svg)
@@ -203,12 +295,108 @@ class DrawingMetadata(BaseObjectMetadata):
         return self
 
     def dict(self, include_ro: bool = False) -> dict:
-        self._export_svg_field()
+        if not include_ro:
+            self._export_svg_field()
         return super(DrawingMetadata, self).dict(include_ro)
 
 
 @dataclass
 class NodeMetadata(BaseObjectMetadata):
+    """
+
+    JSON example:
+    {
+        'command_line': '',
+        'compute_id': 'local',
+        'console': 5000,
+        'console_auto_start': False,
+        'console_host': '0.0.0.0',
+        'console_type': 'telnet',
+        'custom_adapters': [],
+        'first_port_name': '',
+        'height': 59,
+        'label':
+            {
+                'rotation': 0,
+                'style': None,
+                'text': 'test_template-1',
+                'x': None,
+                'y': -40
+            },
+        'locked': False,
+        'name': 'test_template-1',
+        'node_directory': '/opt/gns3/projects/87c42844-b1b1-471d-9b0d-643093372568/project-files/qemu/40cdf193-b2d5-461f-ba19-6596c0cd602f',
+        'node_id': '40cdf193-b2d5-461f-ba19-6596c0cd602f',
+        'node_type': 'qemu',
+        'port_name_format': 'Ethernet{0}',
+        'port_segment_size': 0,
+        'ports':
+            [
+                {
+                    'adapter_number': 0,
+                    'adapter_type': 'e1000',
+                    'data_link_types':
+                        {
+                            'Ethernet': 'DLT_EN10MB'
+                        },
+                    'link_type': 'ethernet',
+                    'mac_address': '0c:cd:f1:93:00:00',
+                    'name': 'Ethernet0',
+                    'port_number': 0,
+                    'short_name': 'e0'
+                }
+            ],
+        'project_id': '87c42844-b1b1-471d-9b0d-643093372568',
+        'properties':
+            {
+                'adapter_type': 'e1000',
+                'adapters': 1,
+                'bios_image': '',
+                'bios_image_md5sum': None,
+                'boot_priority': 'c',
+                'cdrom_image': '',
+                'cdrom_image_md5sum': None,
+                'cpu_throttling': 0,
+                'cpus': 1,
+                'create_config_disk': False,
+                'hda_disk_image': '',
+                'hda_disk_image_md5sum': None,
+                'hda_disk_interface': 'none',
+                'hdb_disk_image': '',
+                'hdb_disk_image_md5sum': None,
+                'hdb_disk_interface': 'none',
+                'hdc_disk_image': '',
+                'hdc_disk_image_md5sum': None,
+                'hdc_disk_interface': 'none',
+                'hdd_disk_image': '',
+                'hdd_disk_image_md5sum': None,
+                'hdd_disk_interface': 'none',
+                'initrd': '',
+                'initrd_md5sum': None,
+                'kernel_command_line': '',
+                'kernel_image': '',
+                'kernel_image_md5sum': None,
+                'legacy_networking': False,
+                'linked_clone': True,
+                'mac_address': '0c:cd:f1:93:00:00',
+                'on_close': 'power_off',
+                'options': '',
+                'platform': 'i386',
+                'process_priority': 'normal',
+                'qemu_path': '/bin/qemu-system-i386',
+                'ram': 256,
+                'replicate_network_connection_state': True,
+                'usage': ''
+            },
+        'status': 'stopped',
+        'symbol': ':/symbols/qemu_guest.svg',
+        'template_id': '45710015-abe8-46f5-8e38-b7618fe20ef8',
+        'width': 65,
+        'x': 0,
+        'y': 0,
+        'z': 1
+    }
+    """
     _READONLY_ATTRIBUTES = 'command_line', 'console', 'console_host', 'height', 'node_directory', 'node_id', 'ports',\
                            'project_id', 'status', 'template_id', 'width'
 
@@ -243,6 +431,52 @@ class NodeMetadata(BaseObjectMetadata):
 
 @dataclass
 class LinkMetadata(BaseObjectMetadata):
+    """Link Metadata
+
+    JSON example:
+    {
+        "capture_compute_id": null,
+        "capture_file_name": null,
+        "capture_file_path": null,
+        "capturing": false,
+        "filters": {},
+        "link_id": "bb2f19d4-5061-4e45-84d2-c931cd1bf39c",
+        "link_style": {},
+        "link_type": "ethernet",
+        "nodes":
+            [
+                {
+                    "adapter_number": 0,
+                    "label":
+                    {
+                        "rotation": 0,
+                        "style": "font-size: 10; font-style: Verdana",
+                        "text": "e0",
+                        "x": 82,
+                        "y": 23
+                    },
+                    "node_id": "5cfdc2a2-0ec3-4b02-abe9-efbefa74eaac",
+                    "port_number": 0
+                },
+                {
+                    "adapter_number": 0,
+                    "label":
+                    {
+                        "rotation": 0,
+                        "style": "font-size: 10; font-style: Verdana",
+                        "text": "e0",
+                        "x": -18,
+                        "y": 35
+                    },
+                    "node_id": "3f6fcd32-d18b-42ef-8ce1-f4f760f91e28",
+                    "port_number": 0
+                }
+            ],
+        "project_id": "55b54174-0e63-48c8-97c7-bb3a5c18aa4e",
+        "suspend": false
+    }
+    """
+
     _READONLY_ATTRIBUTES = 'capture_compute_id', 'capture_file_name', 'capture_file_path', 'capturing', 'link_id',\
                            'project_id'
     _project = None
@@ -261,16 +495,18 @@ class LinkMetadata(BaseObjectMetadata):
     suspend: Optional[bool] = None
 
     def _import_nodes_field(self) -> None:
-        for node in self.nodes:
-            if 'node_id' in node:
-                node['node'] = Node(project=self._project, node_id=node['node_id'])
-                del node['node_id']
+        if self.nodes:
+            for node in self.nodes:
+                if 'node_id' in node:
+                    node['node'] = Node(project=self._project, node_id=node['node_id'])
+                    del node['node_id']
 
     def _export_nodes_field(self) -> None:
-        for node in self.nodes:
-            if 'node' in node:
-                node['node_id'] = node['node'].id
-                del node['node']
+        if self.nodes:
+            for node in self.nodes:
+                if 'node' in node:
+                    node['node_id'] = node['node'].id
+                    del node['node']
 
     def update(self, data_dict: dict):
         super(LinkMetadata, self).update(data_dict)
@@ -278,7 +514,8 @@ class LinkMetadata(BaseObjectMetadata):
         return self
 
     def dict(self, include_ro: bool = False) -> dict:
-        self._export_nodes_field()
+        if not include_ro:
+            self._export_nodes_field()
         return super(LinkMetadata, self).dict(include_ro)
 
 
@@ -289,7 +526,7 @@ class BaseObject:
         self.metadata = self._MetadataClass(**kwargs)
 
     def __repr__(self):
-        return self.metadata.__repr__()
+        return self.metadata.__repr__().replace('Metadata(', '(')
 
     @property
     def _endpoint_url(self) -> str:
@@ -317,20 +554,18 @@ class BaseObject:
         """Get all GNS3 objects from server"""
         return self.server.get(url=self._endpoint_url).json()
 
-    def _get(self, object_id: str = None, name: str = None) -> dict:
+    def _get(self) -> dict:
         """Get all GNS3 objects from server and returns the specified one"""
         objects = [self.__class__(**t).metadata.dict(include_ro=True) for t in self._get_all()]
 
-        if not object_id:
-            object_id = self.metadata.__getattribute__(self._object_id_field_name)
+        object_id = self.metadata.__getattribute__(self._object_id_field_name)
         if object_id:
             try:
                 return next(t for t in objects if t[self._object_id_field_name] == object_id)
             except StopIteration:
                 raise ObjectDoesNotExist(f'Cannot find {self._object_type} with id "{object_id}" on server')
 
-        if not name:
-            name = self.metadata.name
+        name = self.metadata.name
         if name:
             try:
                 return next(t for t in objects if t["name"] == name)
@@ -421,6 +656,7 @@ class Project(BaseObject):
         self._server = server
         self.drawings = DrawingList(project=self)
         self.nodes = NodeList(project=self)
+        self.links = LinkList(project=self)
 
     @property
     def _endpoint_url(self) -> str:
@@ -474,12 +710,11 @@ class Node(BaseObject):
         else:
             url = f"{self._endpoint_url}"
         json = self.metadata.dict()
-        cache = json.copy()
-        response = self.server.post(url=url, json=json)
+        response = self.server.post(url=url, json={k: v for k, v in json.items() if k in ('name', 'x', 'y')})
         self._check_status_code(response)
         self.metadata.update(response.json())
         # GNS3 server does not succeed at once, bug ?
-        self.metadata.update(cache)
+        self.metadata.update(json)
         self.update()
 
 
@@ -500,6 +735,86 @@ class Link(BaseObject):
     def server(self):
         """Returns the GNS3 server used by this object"""
         return self._project.server
+
+    @staticmethod
+    def _are_link_ends_the_same(v1, v2) -> bool:
+        # syntax checks
+        if len(v1) != len(v2) != 2:
+            return False
+        for n in v1 + v2:
+            if 'node' not in n or 'adapter_number' not in n or 'port_number' not in n:
+                return False
+            if not isinstance(n['node'], Node):
+                return False
+
+        # ends definition with node object
+        v1p0 = v1[0]['adapter_number'], v1[0]['port_number']
+        v1p1 = v1[1]['adapter_number'], v1[1]['port_number']
+        v2p0 = v2[0]['adapter_number'], v2[0]['port_number']
+        v2p1 = v2[1]['adapter_number'], v2[1]['port_number']
+        if (v1p0 + v1p1 == v2p0 + v2p1 and v1[0]['node'] is v2[0]['node'] and v1[1]['node'] is v2[1]['node']) or \
+                (v1p0 + v1p1 == v2p1 + v2p0 and v1[0]['node'] is v2[1]['node'] and v1[1]['node'] is v2[0]['node']):
+            return True
+
+        # ends definition with node id
+        v1p0 = v1[0]['node'].metadata.node_id, v1[0]['adapter_number'], v1[0]['port_number']
+        v1p1 = v1[1]['node'].metadata.node_id, v1[1]['adapter_number'], v1[1]['port_number']
+        v2p0 = v2[0]['node'].metadata.node_id, v2[0]['adapter_number'], v2[0]['port_number']
+        v2p1 = v2[1]['node'].metadata.node_id, v2[1]['adapter_number'], v2[1]['port_number']
+        if v1p0 + v1p1 == v2p0 + v2p1 or v1p1 + v1p0 == v2p0 + v2p1:
+            if v1[0]['node'].metadata.node_id and v1[1]['node'].metadata.node_id:
+                return True
+
+        # ends definition with node name
+        v1p0 = v1[0]['node'].metadata.name, v1[0]['adapter_number'], v1[0]['port_number']
+        v1p1 = v1[1]['node'].metadata.name, v1[1]['adapter_number'], v1[1]['port_number']
+        v2p0 = v2[0]['node'].metadata.name, v2[0]['adapter_number'], v2[0]['port_number']
+        v2p1 = v2[1]['node'].metadata.name, v2[1]['adapter_number'], v2[1]['port_number']
+        if v1p0 + v1p1 == v2p0 + v2p1 or v1p1 + v1p0 == v2p0 + v2p1:
+            if v1[0]['node'].metadata.name and v1[1]['node'].metadata.name:
+                return True
+
+        # ends definition with node name and id
+        v1p0 = v1[0]['adapter_number'], v1[0]['port_number']
+        v1p1 = v1[1]['adapter_number'], v1[1]['port_number']
+        v2p0 = v2[0]['adapter_number'], v2[0]['port_number']
+        v2p1 = v2[1]['adapter_number'], v2[1]['port_number']
+        if (v1p0 + v1p1 == v2p0 + v2p1 and
+            (v1[0]['node'].metadata.name and v1[0]['node'].metadata.name == v2[0]['node'].metadata.name
+             and v1[1]['node'].metadata.node_id and v1[1]['node'].metadata.node_id == v2[1]['node'].metadata.node_id
+             or v1[0]['node'].metadata.node_id and v1[0]['node'].metadata.node_id == v2[0]['node'].metadata.node_id
+             and v1[1]['node'].metadata.name and v1[1]['node'].metadata.name == v2[1]['node'].metadata.name)) \
+                or (v1p0 + v1p1 == v2p1 + v2p0 and
+                    (v1[0]['node'].metadata.name and v1[0]['node'].metadata.name == v2[1]['node'].metadata.name
+                     and v1[1]['node'].metadata.node_id
+                     and v1[1]['node'].metadata.node_id == v2[0]['node'].metadata.node_id
+                     or v1[0]['node'].metadata.node_id
+                     and v1[0]['node'].metadata.node_id == v2[1]['node'].metadata.node_id
+                     and v1[1]['node'].metadata.name and v1[1]['node'].metadata.name == v2[0]['node'].metadata.name)):
+            return True
+
+        return False
+
+    def _get(self):
+        """Get all GNS3 objects from server and returns the specified one"""
+        objects = [self.__class__(**t).metadata.dict(include_ro=True) for t in self._get_all()]
+
+        object_id = self.metadata.__getattribute__(self._object_id_field_name)
+        if object_id:
+            try:
+                return next(t for t in objects if t[self._object_id_field_name] == object_id)
+            except StopIteration:
+                raise ObjectDoesNotExist(f'Cannot find {self._object_type} with id "{object_id}" on server')
+
+        nodes = self.metadata.nodes # noqa
+        if nodes:
+            try:
+                return next(t for t in objects if Link._are_link_ends_the_same(t['nodes'], nodes))
+            except StopIteration:
+                raise ObjectDoesNotExist(f'Cannot find {self._object_type} with same ends on server')
+
+        _msg: str = f"{self._object_type} metadata must provide either nodes or a {self._object_id_field_name}"
+        raise InvalidParameters(_msg)
 
 
 class BaseObjectList(UserList):
@@ -548,7 +863,10 @@ class BaseObjectList(UserList):
         target_without_ids = [t for t in target if t not in target_with_ids]
         target_ids = set([t.id for t in target_with_ids])
 
-        source: list[BaseObject] = self._get_remote_objects()
+        try:
+            source: list[BaseObject] = self._get_remote_objects()
+        except ObjectDoesNotExist:
+            source = list()
         source_ids = set([t.id for t in source])
 
         delete_ids = source_ids - target_ids

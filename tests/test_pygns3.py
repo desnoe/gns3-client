@@ -646,6 +646,116 @@ class TestNodes(unittest.TestCase):
         self.assertEqual(node.metadata.x, 200)
 
 
+class TestLinkEquality(unittest.TestCase):
+    def test_are_link_ends_the_same_ok_object(self):
+        # check ok based on Node object
+        nodes = [
+            {'adapter_number': 0, 'node': Node(), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(), 'port_number': 0}
+        ]
+        self.assertTrue(Link._are_link_ends_the_same(nodes, nodes))
+        self.assertTrue(Link._are_link_ends_the_same(nodes, [nodes[1], nodes[0]]))
+        self.assertTrue(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes))
+
+    def test_are_link_ends_the_same_ko_object(self):
+        # check ko based on Node object
+        nodes = [
+            {'adapter_number': 0, 'node': Node(), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(), 'port_number': 0}
+        ]
+        nodes2 = [
+            {'adapter_number': 0, 'node': Node(), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(), 'port_number': 0}
+        ]
+        self.assertFalse(Link._are_link_ends_the_same(nodes, nodes2))
+        self.assertFalse(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertFalse(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+
+    def test_are_link_ends_the_same_ok_id(self):
+        # check ok based on Node id
+        nodes = [
+            {'adapter_number': 0, 'node': Node(node_id='1'), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(node_id='2'), 'port_number': 0}
+        ]
+        nodes2 = [
+            {'adapter_number': 0, 'node': Node(node_id='1'), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(node_id='2'), 'port_number': 0}
+        ]
+        self.assertTrue(Link._are_link_ends_the_same(nodes, nodes2))
+        self.assertTrue(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertTrue(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+
+    def test_are_link_ends_the_same_ko_id(self):
+        # check ko based on Node id
+        nodes = [
+            {'adapter_number': 0, 'node': Node(node_id='1'), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(node_id='2'), 'port_number': 0}
+        ]
+        nodes2 = [
+            {'adapter_number': 0, 'node': Node(node_id='3'), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(node_id='2'), 'port_number': 0}
+        ]
+        self.assertFalse(Link._are_link_ends_the_same(nodes, nodes2))
+        self.assertFalse(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertFalse(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+
+    def test_are_link_ends_the_same_ok_name(self):
+        # check ok based on Node name
+        nodes = [
+            {'adapter_number': 0, 'node': Node(name='test_node1'), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
+        ]
+        nodes2 = [
+            {'adapter_number': 0, 'node': Node(name='test_node1'), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
+        ]
+        self.assertTrue(Link._are_link_ends_the_same(nodes, nodes2))
+        self.assertTrue(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertTrue(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+
+    def test_are_link_ends_the_same_ko_name(self):
+        # check ko based on Node name
+        nodes = [
+            {'adapter_number': 0, 'node': Node(name='test_node1'), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
+        ]
+        nodes2 = [
+            {'adapter_number': 0, 'node': Node(name='test_node3'), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
+        ]
+        self.assertFalse(Link._are_link_ends_the_same(nodes, nodes2))
+        self.assertFalse(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertFalse(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+
+    def test_are_link_ends_the_same_ok_cross(self):
+        # cross check based on Node name and id
+        nodes = [
+            {'adapter_number': 0, 'node': Node(node_id='1'), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
+        ]
+        nodes2 = [
+            {'adapter_number': 0, 'node': Node(node_id='1'), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
+        ]
+        self.assertTrue(Link._are_link_ends_the_same(nodes, nodes2))
+        self.assertTrue(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertTrue(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+
+    def test_are_link_ends_the_same_ko_cross(self):
+        # cross check based on Node name and id
+        nodes = [
+            {'adapter_number': 0, 'node': Node(node_id='1'), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
+        ]
+        nodes2 = [
+            {'adapter_number': 0, 'node': Node(node_id='3'), 'port_number': 0},
+            {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
+        ]
+        self.assertFalse(Link._are_link_ends_the_same(nodes, nodes2))
+        self.assertFalse(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertFalse(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+
+
 class TestLink(unittest.TestCase):
     server: Server
     template: Template
@@ -683,56 +793,166 @@ class TestLink(unittest.TestCase):
         self.node2 = Node(name='test_node2', template=self.template, project=self.project)
         self.node2.create()
 
+        self.NODES = [
+            {'adapter_number': 0, 'node': self.node1, 'port_number': 0},
+            {'adapter_number': 0, 'node': self.node2, 'port_number': 0}
+        ]
+
     def tearDown(self):
         if self.project.exists:
             self.project.delete()
 
     def test_get_id(self):
-        node = Link(project=self.project)
-        node.create()
-        node_id = node.id
-        self.assertIsInstance(node_id, str)
-        self.assertGreater(len(node_id), 0)
+        link = Link(project=self.project, nodes=self.NODES)
+        link.create()
+        link_id = link.id
+        self.assertIsInstance(link_id, str)
+        self.assertGreater(len(link_id), 0)
 
     def test_create(self):
-        node = Link(name='test_node', template=self.template, project=self.project)
-        node.create()
-        self.assertIsNotNone(node.metadata.node_id)
+        link = Link(project=self.project, nodes=self.NODES)
+        link.create()
+        self.assertIsNotNone(link.metadata.link_id)
 
     def test_read(self):
-        node = Link(name='test_node', template=self.template, project=self.project)
-        node.create()
-        node = Link(name='test_node', template=self.template, project=self.project)
-        node.read()
-        self.assertIsNotNone(node.metadata.node_id)
+        link = Link(project=self.project, nodes=self.NODES)
+        link.create()
+        link = Link(project=self.project, nodes=self.NODES)
+        link.read()
+        self.assertIsNotNone(link.metadata.link_id)
 
     def test_update(self):
-        node = Link(name='test_node', template=self.template, project=self.project)
-        node.create()
-        node.metadata.x = 100
-        node.update()
-        node.read()
-        self.assertEqual(node.metadata.x, 100)
-        node.metadata.x = 200
-        node.update()
-        node.read()
-        self.assertEqual(node.metadata.x, 200)
+        link = Link(project=self.project, nodes=self.NODES)
+        link.create()
+        link.metadata.suspend = True
+        link.update()
+        link.read()
+        self.assertEqual(link.metadata.suspend, True)
+        link.metadata.suspend = False
+        link.update()
+        link.read()
+        self.assertEqual(link.metadata.suspend, False)
 
     def test_delete(self):
-        node = Link(name='test_node', template=self.template, project=self.project)
-        node.create()
-        node = Link(name='test_node', template=self.template, project=self.project)
-        node.delete()
-        self.assertIsNone(node.metadata.node_id)
+        link = Link(project=self.project, nodes=self.NODES)
+        link.create()
+        link = Link(project=self.project, nodes=self.NODES)
+        link.delete()
+        self.assertIsNone(link.metadata.link_id)
 
     def test_exists(self):
-        node = Link(name='test_node', template=self.template, project=self.project)
-        node.create()
-        self.assertTrue(node.exists)
-        node = Link(name='test_node', template=self.template, project=self.project)
-        self.assertTrue(node.exists)
-        node = Link(name='test_no_node', template=self.template, project=self.project)
-        self.assertFalse(node.exists)
+        link = Link(project=self.project, nodes=self.NODES)
+        link.create()
+        self.assertTrue(link.exists)
+        link = Link(project=self.project, nodes=self.NODES)
+        self.assertTrue(link.exists)
+        self.NODES[0]['adapter_number'] = 1
+        link = Link(project=self.project, nodes=self.NODES)
+        self.assertFalse(link.exists)
+
+
+class TestLinks(unittest.TestCase):
+    server: Server
+    template: Template
+
+    @classmethod
+    def setUpClass(cls):
+        cls.server = Server(GNS3_URL)
+        project = Project(name='test_project', server=cls.server)
+        if project.exists:
+            project.delete()
+
+        template = Template(name='test_template', template_type="qemu", server=cls.server)
+        while template.exists:
+            template.delete()
+            template = Template(name='test_template', template_type="qemu", server=cls.server)
+        cls.template = Template(name='test_template', template_type="qemu", server=cls.server)
+        cls.template.create()
+
+    @classmethod
+    def tearDownClass(cls):
+        project = Project(name='test_project', server=cls.server)
+        if project.exists:
+            project.delete()
+        cls.server.close()
+
+    def setUp(self):
+        self.project = Project(name='test_project', server=self.server)
+        if not self.project.exists:
+            self.project.create()
+        self.project.read()
+
+        self.node1 = Node(name='test_node1', template=self.template, project=self.project)
+        self.node1.create()
+
+        self.node2 = Node(name='test_node2', template=self.template, project=self.project)
+        self.node2.create()
+
+        self.NODES = [
+            {'adapter_number': 0, 'node': self.node1, 'port_number': 0},
+            {'adapter_number': 0, 'node': self.node2, 'port_number': 0}
+        ]
+
+    def tearDown(self):
+        if self.project.exists:
+            self.project.delete()
+
+    def test_pull(self):
+        link = Link(project=self.project, nodes=self.NODES)
+        link.create()
+        self.project.links.pull()
+        self.assertEqual(len(self.project.links), 1)
+
+    def test_diff_add(self):
+        self.project.links.pull()
+        self.project.links.append(Link(project=self.project, nodes=self.NODES))
+        diff = self.project.links.diff()
+        self.assertEqual((1, 0, 0), (len(diff['create']), len(diff['update']), len(diff['delete'])))
+
+    def test_diff_delete(self):
+        self.project.links.pull()
+        link = Link(project=self.project, nodes=self.NODES)
+        link.create()
+        diff = self.project.links.diff()
+        self.assertEqual((0, 0, 1), (len(diff['create']), len(diff['update']), len(diff['delete'])))
+
+    def test_diff_update(self):
+        link = Link(project=self.project, nodes=self.NODES, suspend=True)
+        link.create()
+        self.project.links.pull()
+        link.metadata.suspend = False
+        link.update()
+        diff = self.project.links.diff()
+        self.assertEqual((0, 1, 0), (len(diff['create']), len(diff['update']), len(diff['delete'])))
+
+    def test_push_add(self):
+        self.project.links.pull()
+        nb_links_before = len(self.project.links)
+        self.project.links.append(Link(project=self.project, nodes=self.NODES))
+        self.project.links.push()
+        nb_links_after = len(self.project.links)
+        self.assertEqual(nb_links_after, nb_links_before + 1)
+
+    def test_push_delete(self):
+        link = Link(project=self.project, nodes=self.NODES)
+        link.create()
+        self.project.links.pull()
+        nb_links_before = len(self.project.links)
+        self.project.links = LinkList(project=self.project, initlist=[])
+        self.project.links.push()
+        nb_links_after = len(self.project.links)
+        self.assertEqual(nb_links_after, nb_links_before - 1)
+
+    def test_push_update(self):
+        link = Link(project=self.project, nodes=self.NODES, suspend=True)
+        link.create()
+        self.project.links.pull()
+        link = self.project.links[0]
+        self.assertEqual(link.metadata.suspend, True)
+        link.metadata.suspend = False
+        self.project.links.push()
+        link = self.project.links[0]
+        self.assertEqual(link.metadata.suspend, False)
 
 
 if __name__ == '__main__':
