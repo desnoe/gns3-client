@@ -1,5 +1,5 @@
 import unittest
-from sdwan_automation.pygns3 import Server, Template, TemplateList, Project, ProjectList, Drawing, DrawingList, \
+from pygns3 import Server, Template, TemplateList, Project, ProjectList, Drawing, DrawingList, \
     DrawingMetadata, Node, NodeList, Link, LinkList
 
 GNS3_URL = 'http://172.25.41.100:3080/v2'
@@ -653,9 +653,9 @@ class TestLinkEquality(unittest.TestCase):
             {'adapter_number': 0, 'node': Node(), 'port_number': 0},
             {'adapter_number': 0, 'node': Node(), 'port_number': 0}
         ]
-        self.assertTrue(Link._are_link_ends_the_same(nodes, nodes))
-        self.assertTrue(Link._are_link_ends_the_same(nodes, [nodes[1], nodes[0]]))
-        self.assertTrue(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes))
+        self.assertTrue(Link.are_link_ends_the_same(nodes, nodes))
+        self.assertTrue(Link.are_link_ends_the_same(nodes, [nodes[1], nodes[0]]))
+        self.assertTrue(Link.are_link_ends_the_same([nodes[1], nodes[0]], nodes))
 
     def test_are_link_ends_the_same_ko_object(self):
         # check ko based on Node object
@@ -667,9 +667,9 @@ class TestLinkEquality(unittest.TestCase):
             {'adapter_number': 0, 'node': Node(), 'port_number': 0},
             {'adapter_number': 0, 'node': Node(), 'port_number': 0}
         ]
-        self.assertFalse(Link._are_link_ends_the_same(nodes, nodes2))
-        self.assertFalse(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
-        self.assertFalse(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+        self.assertFalse(Link.are_link_ends_the_same(nodes, nodes2))
+        self.assertFalse(Link.are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertFalse(Link.are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
 
     def test_are_link_ends_the_same_ok_id(self):
         # check ok based on Node id
@@ -681,9 +681,9 @@ class TestLinkEquality(unittest.TestCase):
             {'adapter_number': 0, 'node': Node(node_id='1'), 'port_number': 0},
             {'adapter_number': 0, 'node': Node(node_id='2'), 'port_number': 0}
         ]
-        self.assertTrue(Link._are_link_ends_the_same(nodes, nodes2))
-        self.assertTrue(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
-        self.assertTrue(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+        self.assertTrue(Link.are_link_ends_the_same(nodes, nodes2))
+        self.assertTrue(Link.are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertTrue(Link.are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
 
     def test_are_link_ends_the_same_ko_id(self):
         # check ko based on Node id
@@ -695,9 +695,9 @@ class TestLinkEquality(unittest.TestCase):
             {'adapter_number': 0, 'node': Node(node_id='3'), 'port_number': 0},
             {'adapter_number': 0, 'node': Node(node_id='2'), 'port_number': 0}
         ]
-        self.assertFalse(Link._are_link_ends_the_same(nodes, nodes2))
-        self.assertFalse(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
-        self.assertFalse(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+        self.assertFalse(Link.are_link_ends_the_same(nodes, nodes2))
+        self.assertFalse(Link.are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertFalse(Link.are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
 
     def test_are_link_ends_the_same_ok_name(self):
         # check ok based on Node name
@@ -709,9 +709,9 @@ class TestLinkEquality(unittest.TestCase):
             {'adapter_number': 0, 'node': Node(name='test_node1'), 'port_number': 0},
             {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
         ]
-        self.assertTrue(Link._are_link_ends_the_same(nodes, nodes2))
-        self.assertTrue(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
-        self.assertTrue(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+        self.assertTrue(Link.are_link_ends_the_same(nodes, nodes2))
+        self.assertTrue(Link.are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertTrue(Link.are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
 
     def test_are_link_ends_the_same_ko_name(self):
         # check ko based on Node name
@@ -723,9 +723,9 @@ class TestLinkEquality(unittest.TestCase):
             {'adapter_number': 0, 'node': Node(name='test_node3'), 'port_number': 0},
             {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
         ]
-        self.assertFalse(Link._are_link_ends_the_same(nodes, nodes2))
-        self.assertFalse(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
-        self.assertFalse(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+        self.assertFalse(Link.are_link_ends_the_same(nodes, nodes2))
+        self.assertFalse(Link.are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertFalse(Link.are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
 
     def test_are_link_ends_the_same_ok_cross(self):
         # cross check based on Node name and id
@@ -737,9 +737,9 @@ class TestLinkEquality(unittest.TestCase):
             {'adapter_number': 0, 'node': Node(node_id='1'), 'port_number': 0},
             {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
         ]
-        self.assertTrue(Link._are_link_ends_the_same(nodes, nodes2))
-        self.assertTrue(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
-        self.assertTrue(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+        self.assertTrue(Link.are_link_ends_the_same(nodes, nodes2))
+        self.assertTrue(Link.are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertTrue(Link.are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
 
     def test_are_link_ends_the_same_ko_cross(self):
         # cross check based on Node name and id
@@ -751,9 +751,9 @@ class TestLinkEquality(unittest.TestCase):
             {'adapter_number': 0, 'node': Node(node_id='3'), 'port_number': 0},
             {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
         ]
-        self.assertFalse(Link._are_link_ends_the_same(nodes, nodes2))
-        self.assertFalse(Link._are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
-        self.assertFalse(Link._are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
+        self.assertFalse(Link.are_link_ends_the_same(nodes, nodes2))
+        self.assertFalse(Link.are_link_ends_the_same(nodes, [nodes2[1], nodes2[0]]))
+        self.assertFalse(Link.are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
 
 
 class TestLink(unittest.TestCase):

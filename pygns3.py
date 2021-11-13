@@ -88,7 +88,7 @@ class BaseObjectMetadata:
         target_params = {
             k: v
             for k, v in vars(self).items()
-            if v is not None
+            if v is not None and k[0] != '_'
         }
         for k, v in target_params.items():
             if k not in source_params or k in source_params and source_params[k] != target_params[k]:
@@ -258,7 +258,9 @@ class DrawingMetadata(BaseObjectMetadata):
         'locked': False,
         'project_id': '469ecdd2-b41b-4a2e-ac50-2da823481503',
         'rotation': 0,
-        'svg': '<svg height="100" width="100" name="test_drawing"><rect fill="#ebecff" fill-opacity="1.0" height="100" width="100" /></svg>',
+        'svg': '<svg height="100" width="100" name="test_drawing">
+                  <rect fill="#ebecff" fill-opacity="1.0" height="100" width="100" />
+                </svg>',
         'x': 0,
         'y': 0,
         'z': 2
@@ -325,7 +327,8 @@ class NodeMetadata(BaseObjectMetadata):
             },
         'locked': False,
         'name': 'test_template-1',
-        'node_directory': '/opt/gns3/projects/87c42844-b1b1-471d-9b0d-643093372568/project-files/qemu/40cdf193-b2d5-461f-ba19-6596c0cd602f',
+        'node_directory': '/opt/gns3/projects/87c42844-b1b1-471d-9b0d-643093372568/project-files/qemu/\
+            40cdf193-b2d5-461f-ba19-6596c0cd602f',
         'node_id': '40cdf193-b2d5-461f-ba19-6596c0cd602f',
         'node_type': 'qemu',
         'port_name_format': 'Ethernet{0}',
@@ -498,7 +501,9 @@ class LinkMetadata(BaseObjectMetadata):
         if self.nodes:
             for node in self.nodes:
                 if 'node_id' in node:
-                    node['node'] = Node(project=self._project, node_id=node['node_id'])
+                    n = Node(project=self._project, node_id=node['node_id'])
+                    n.read()
+                    node['node'] = n
                     del node['node_id']
 
     def _export_nodes_field(self) -> None:
@@ -517,6 +522,14 @@ class LinkMetadata(BaseObjectMetadata):
         if not include_ro:
             self._export_nodes_field()
         return super(LinkMetadata, self).dict(include_ro)
+
+    def diff(self, source: dict) -> dict:
+        result = super(LinkMetadata, self).diff(source)
+        if 'nodes' in result:
+            del result['nodes']
+        if not Link.are_link_ends_the_same(source['nodes'], self.nodes):
+            result['nodes'] = self.nodes
+        return result
 
 
 class BaseObject:
@@ -674,16 +687,16 @@ class Drawing(BaseObject):
     def __init__(self, project: Project = None, **kwargs) -> None:
         super(Drawing, self).__init__(**kwargs)
         self.metadata.update({})
-        self._project = project
+        self.project = project
 
     @property
     def _endpoint_url(self) -> str:
-        return f'/projects/{self._project.id}/drawings'
+        return f'/projects/{self.project.id}/drawings'
 
     @property
     def server(self):
         """Returns the GNS3 server used by this object"""
-        return self._project.server
+        return self.project.server
 
 
 class Node(BaseObject):
@@ -691,22 +704,22 @@ class Node(BaseObject):
 
     def __init__(self, project: Project = None, template: Template = None, **kwargs) -> None:
         super(Node, self).__init__(**kwargs)
-        self._project = project
-        self._template = template
+        self.project = project
+        self.template = template
 
     @property
     def _endpoint_url(self) -> str:
-        return f'/projects/{self._project.id}/nodes'
+        return f'/projects/{self.project.id}/nodes'
 
     @property
     def server(self):
         """Returns the GNS3 server used by this object"""
-        return self._project.server
+        return self.project.server
 
     def create(self) -> None:
         """Create the GNS3 object on server from the instance, e.g. sync to server"""
-        if self._template:
-            url = f"{self._endpoint_url}/{self._template.id}".replace('/nodes/', '/templates/')
+        if self.template:
+            url = f"{self._endpoint_url}/{self.template.id}".replace('/nodes/', '/templates/')
         else:
             url = f"{self._endpoint_url}"
         json = self.metadata.dict()
@@ -725,19 +738,19 @@ class Link(BaseObject):
         super(Link, self).__init__(**kwargs)
         self.metadata._project = project
         self.metadata.update({})
-        self._project = project
+        self.project = project
 
     @property
     def _endpoint_url(self) -> str:
-        return f'/projects/{self._project.id}/links'
+        return f'/projects/{self.project.id}/links'
 
     @property
     def server(self):
         """Returns the GNS3 server used by this object"""
-        return self._project.server
+        return self.project.server
 
     @staticmethod
-    def _are_link_ends_the_same(v1, v2) -> bool:
+    def are_link_ends_the_same(v1, v2) -> bool:
         # syntax checks
         if len(v1) != len(v2) != 2:
             return False
@@ -762,7 +775,7 @@ class Link(BaseObject):
         v2p0 = v2[0]['node'].metadata.node_id, v2[0]['adapter_number'], v2[0]['port_number']
         v2p1 = v2[1]['node'].metadata.node_id, v2[1]['adapter_number'], v2[1]['port_number']
         if v1p0 + v1p1 == v2p0 + v2p1 or v1p1 + v1p0 == v2p0 + v2p1:
-            if v1[0]['node'].metadata.node_id and v1[1]['node'].metadata.node_id:
+            if isinstance(v1[0]['node'].metadata.node_id, str) and isinstance(v1[1]['node'].metadata.node_id, str):
                 return True
 
         # ends definition with node name
@@ -771,7 +784,7 @@ class Link(BaseObject):
         v2p0 = v2[0]['node'].metadata.name, v2[0]['adapter_number'], v2[0]['port_number']
         v2p1 = v2[1]['node'].metadata.name, v2[1]['adapter_number'], v2[1]['port_number']
         if v1p0 + v1p1 == v2p0 + v2p1 or v1p1 + v1p0 == v2p0 + v2p1:
-            if v1[0]['node'].metadata.name and v1[1]['node'].metadata.name:
+            if isinstance(v1[0]['node'].metadata.name, str) and isinstance(v1[1]['node'].metadata.name, str):
                 return True
 
         # ends definition with node name and id
@@ -786,9 +799,9 @@ class Link(BaseObject):
              and v1[1]['node'].metadata.name and v1[1]['node'].metadata.name == v2[1]['node'].metadata.name)) \
                 or (v1p0 + v1p1 == v2p1 + v2p0 and
                     (v1[0]['node'].metadata.name and v1[0]['node'].metadata.name == v2[1]['node'].metadata.name
-                     and v1[1]['node'].metadata.node_id
+                     and isinstance(v1[1]['node'].metadata.node_id, str)
                      and v1[1]['node'].metadata.node_id == v2[0]['node'].metadata.node_id
-                     or v1[0]['node'].metadata.node_id
+                     or isinstance(v1[0]['node'].metadata.node_id, str)
                      and v1[0]['node'].metadata.node_id == v2[1]['node'].metadata.node_id
                      and v1[1]['node'].metadata.name and v1[1]['node'].metadata.name == v2[0]['node'].metadata.name)):
             return True
@@ -797,7 +810,7 @@ class Link(BaseObject):
 
     def _get(self):
         """Get all GNS3 objects from server and returns the specified one"""
-        objects = [self.__class__(**t).metadata.dict(include_ro=True) for t in self._get_all()]
+        objects = [self.__class__(project=self.project, **t).metadata.dict(include_ro=True) for t in self._get_all()]
 
         object_id = self.metadata.__getattribute__(self._object_id_field_name)
         if object_id:
@@ -809,7 +822,7 @@ class Link(BaseObject):
         nodes = self.metadata.nodes # noqa
         if nodes:
             try:
-                return next(t for t in objects if Link._are_link_ends_the_same(t['nodes'], nodes))
+                return next(t for t in objects if Link.are_link_ends_the_same(t['nodes'], nodes))
             except StopIteration:
                 raise ObjectDoesNotExist(f'Cannot find {self._object_type} with same ends on server')
 
