@@ -1,4 +1,6 @@
 pip==21.3.1
-setuptools==58.3.0
+setuptools==59.1.0
 requests~=2.26.0
 urllib3~=1.26.7
+requests-cache~=0.8.1
+logzero~=1.7.0

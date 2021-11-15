@@ -1,4 +1,5 @@
-import requests
+import requests_cache
+from logzero import logger
 from typing import Optional
 from dataclasses import dataclass
 from collections import UserList
@@ -23,7 +24,7 @@ class ObjectAlreadyExists(Exception):
     pass
 
 
-class Server(requests.Session):
+class Server(requests_cache.CachedSession):
     """
     This class specifies how to connect to a GNS3 server: the base URL, the credentials, and if SSL must be checked.
     """
@@ -36,6 +37,7 @@ class Server(requests.Session):
         self.headers.update({"Content-Type": "application/json", "Accept": "application/json"})
         self.templates = TemplateList(server=self)
         self.projects = ProjectList(server=self)
+        self.cache.clear()
 
     def _prepend_base_url(self, url: str) -> str:
         """Return the URL prepended with a base URL"""
@@ -50,7 +52,10 @@ class Server(requests.Session):
         """Extends original requests.request with optional URL prepending"""
         if prepend_base_url:
             url = self._prepend_base_url(url)
-        return super(Server, self).request(method, url, *args, **kwargs)
+        logger.debug(f'Request sent: {method} {url}')
+        r = super(Server, self).request(method, url, *args, **kwargs)
+        logger.debug(f'Request status: {r.status_code} {r.reason}')
+        return r
 
     def version(self) -> dict:
         """Returns GNS3 server version"""
@@ -557,7 +562,7 @@ class BaseObject:
         return self._object_type.lower() + '_id'
 
     @staticmethod
-    def _check_status_code(response: requests.Response):
+    def _check_status_code(response: requests_cache.Response):
         """Check HTTP status code received from server"""
         if 200 <= response.status_code < 300:
             return
@@ -609,25 +614,31 @@ class BaseObject:
 
     def create(self) -> None:
         """Create the GNS3 object on server from the instance, e.g. sync to server"""
+        logger.info(f'Creating {self._object_type} {self.metadata.name} ...')
         json = self.metadata.dict()
         response = self.server.post(url=self._endpoint_url, json=json)
         self._check_status_code(response)
         self.metadata.update(response.json())
+        self.server.cache.clear()
 
     def update(self) -> None:
         """Update the GNS3 object on server from the instance, e.g. sync to server"""
+        logger.info(f'Updating {self._object_type} {self.metadata.name} ...')
         url = f"{self._endpoint_url}/{self.id}"
         json = self.metadata.dict()
         response = self.server.put(url=url, json=json)
         self._check_status_code(response)
         self.metadata.update(response.json())
+        self.server.cache.clear()
 
     def delete(self) -> None:
         """Delete the GNS3 object on server and reset the instance"""
+        logger.info(f'Deleting {self._object_type} {self.metadata.name} ...')
         url = f"{self._endpoint_url}/{self.id}"
         response = self.server.delete(url=url)
         self._check_status_code(response)
         self.metadata = self._MetadataClass()
+        self.server.cache.clear()
 
     @property
     def exists(self):
@@ -718,6 +729,7 @@ class Node(BaseObject):
 
     def create(self) -> None:
         """Create the GNS3 object on server from the instance, e.g. sync to server"""
+        logger.info(f'Creating {self._object_type} {self.metadata.name} ...')
         if self.template:
             url = f"{self._endpoint_url}/{self.template.id}".replace('/nodes/', '/templates/')
         else:
@@ -726,6 +738,7 @@ class Node(BaseObject):
         response = self.server.post(url=url, json={k: v for k, v in json.items() if k in ('name', 'x', 'y')})
         self._check_status_code(response)
         self.metadata.update(response.json())
+        self.server.cache.clear()
         # GNS3 server does not succeed at once, bug ?
         self.metadata.update(json)
         self.update()
@@ -856,10 +869,12 @@ class BaseObjectList(UserList):
 
     def pull(self) -> None:
         """Pull objects from server and update local instances, e.g. sync from GNS3 server"""
+        logger.info(f'Pulling {self.__class__.__name__} ...')
         self.data = self._get_remote_objects()
 
     def push(self):
         """Push objects to server from local instances, e.g. sync to GNS3 server"""
+        logger.info(f'Pushing {self.__class__.__name__} ...')
         diff = self.diff()
         for t in diff['delete']:
             t.delete()
@@ -871,6 +886,7 @@ class BaseObjectList(UserList):
 
     def diff(self) -> dict:
         """Returns the diff between GNS3 server (source) and local instances (target)"""
+        logger.info(f'Diffing {self.__class__.__name__} ...')
         target: list[BaseObject] = self.data
         target_with_ids = [t for t in target if t.exists]
         target_without_ids = [t for t in target if t not in target_with_ids]

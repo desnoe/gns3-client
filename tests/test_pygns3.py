@@ -1,8 +1,11 @@
 import unittest
+import logzero
 from pygns3 import Server, Template, TemplateList, Project, ProjectList, Drawing, DrawingList, \
     DrawingMetadata, Node, NodeList, Link, LinkList
 
 GNS3_URL = 'http://172.25.41.100:3080/v2'
+
+logzero.loglevel(level=20)
 
 
 class TestServer(unittest.TestCase):
