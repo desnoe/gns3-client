@@ -1,16 +1,20 @@
 import unittest
 import logzero
-from pygns3 import Server, Template, TemplateList, Project, ProjectList, Drawing, DrawingList, \
-    DrawingMetadata, Node, NodeList, Link, LinkList
+import os
+from gns3_client import Server, Template, TemplateList, Project, ProjectList, Drawing, DrawingList, DrawingMetadata, Node, \
+    NodeList, Link, LinkList
 
-GNS3_URL = 'http://172.25.41.100:3080/v2'
+if 'GNS3_SERVER_URL' not in os.environ:
+    raise Exception('You must set environement variable GNS3_SERVER_URL')
+else:
+    GNS3_SERVER_URL = os.environ['GNS3_SERVER_URL']
 
 logzero.loglevel(level=20)
 
 
 class TestServer(unittest.TestCase):
     def setUp(self):
-        self.server = Server(GNS3_URL)
+        self.server = Server(GNS3_SERVER_URL)
 
     def tearDown(self):
         self.server.close()
@@ -22,7 +26,7 @@ class TestServer(unittest.TestCase):
 
 class TestTemplate(unittest.TestCase):
     def setUp(self):
-        self.server = Server(GNS3_URL)
+        self.server = Server(GNS3_SERVER_URL)
         template = Template(name='test_template', template_type="qemu", server=self.server)
         while template.exists:
             template.delete()
@@ -82,7 +86,7 @@ class TestTemplate(unittest.TestCase):
 
 class TestTemplates(unittest.TestCase):
     def setUp(self):
-        self.server = Server(GNS3_URL)
+        self.server = Server(GNS3_SERVER_URL)
         template = Template(name='test_template', template_type="qemu", server=self.server)
         while template.exists:
             template.delete()
@@ -154,7 +158,7 @@ class TestTemplates(unittest.TestCase):
 
 class TestProject(unittest.TestCase):
     def setUp(self):
-        self.server = Server(GNS3_URL)
+        self.server = Server(GNS3_SERVER_URL)
         project = Project(name='test_project', server=self.server)
         if project.exists:
             project.delete()
@@ -215,7 +219,7 @@ class TestProject(unittest.TestCase):
 
 class TestProjects(unittest.TestCase):
     def setUp(self):
-        self.server = Server(GNS3_URL)
+        self.server = Server(GNS3_SERVER_URL)
         project = Project(name='test_project', server=self.server)
         if project.exists:
             project.delete()
@@ -296,7 +300,7 @@ class TestDrawing(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.server = Server(GNS3_URL)
+        cls.server = Server(GNS3_SERVER_URL)
         project = Project(name='test_project', server=cls.server)
         if project.exists:
             project.delete()
@@ -391,7 +395,7 @@ class TestDrawings(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.server = Server(GNS3_URL)
+        cls.server = Server(GNS3_SERVER_URL)
         project = Project(name='test_project', server=cls.server)
         if project.exists:
             project.delete()
@@ -478,7 +482,7 @@ class TestNode(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.server = Server(GNS3_URL)
+        cls.server = Server(GNS3_SERVER_URL)
         project = Project(name='test_project', server=cls.server)
         if project.exists:
             project.delete()
@@ -555,13 +559,39 @@ class TestNode(unittest.TestCase):
         self.assertFalse(node.exists)
 
 
+class TestNatNode(TestNode):
+    @classmethod
+    def setUpClass(cls):
+        cls.server = Server(GNS3_SERVER_URL)
+        project = Project(name='test_project', server=cls.server)
+        if project.exists:
+            project.delete()
+
+        template = Template(name='NAT', server=cls.server)
+        template.read()
+        cls.template = template
+
+
+class TestCloudNode(TestNode):
+    @classmethod
+    def setUpClass(cls):
+        cls.server = Server(GNS3_SERVER_URL)
+        project = Project(name='test_project', server=cls.server)
+        if project.exists:
+            project.delete()
+
+        template = Template(name='Cloud', server=cls.server)
+        template.read()
+        cls.template = template
+
+
 class TestNodes(unittest.TestCase):
     server: Server
     template: Template
 
     @classmethod
     def setUpClass(cls):
-        cls.server = Server(GNS3_URL)
+        cls.server = Server(GNS3_SERVER_URL)
         project = Project(name='test_project', server=cls.server)
         if project.exists:
             project.delete()
@@ -731,7 +761,7 @@ class TestLinkEquality(unittest.TestCase):
         self.assertFalse(Link.are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
 
     def test_are_link_ends_the_same_ok_cross(self):
-        # cross check based on Node name and id
+        # cross-check based on Node name and id
         nodes = [
             {'adapter_number': 0, 'node': Node(node_id='1'), 'port_number': 0},
             {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
@@ -745,7 +775,7 @@ class TestLinkEquality(unittest.TestCase):
         self.assertTrue(Link.are_link_ends_the_same([nodes[1], nodes[0]], nodes2))
 
     def test_are_link_ends_the_same_ko_cross(self):
-        # cross check based on Node name and id
+        # cross-check based on Node name and id
         nodes = [
             {'adapter_number': 0, 'node': Node(node_id='1'), 'port_number': 0},
             {'adapter_number': 0, 'node': Node(name='test_node2'), 'port_number': 0}
@@ -765,7 +795,7 @@ class TestLink(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.server = Server(GNS3_URL)
+        cls.server = Server(GNS3_SERVER_URL)
         project = Project(name='test_project', server=cls.server)
         if project.exists:
             project.delete()
@@ -860,7 +890,7 @@ class TestLinks(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.server = Server(GNS3_URL)
+        cls.server = Server(GNS3_SERVER_URL)
         project = Project(name='test_project', server=cls.server)
         if project.exists:
             project.delete()

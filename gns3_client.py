@@ -6,6 +6,7 @@ from collections import UserList
 from xml.etree import ElementTree
 from urllib.parse import urlparse
 from urllib3 import disable_warnings
+
 disable_warnings()
 
 
@@ -28,6 +29,7 @@ class Server(requests_cache.CachedSession):
     """
     This class specifies how to connect to a GNS3 server: the base URL, the credentials, and if SSL must be checked.
     """
+
     def __init__(self, base_url: str = None, username: str = None, password: str = None, verify: bool = False) -> None:
         super(Server, self).__init__()
         self.base_url = base_url
@@ -86,20 +88,35 @@ class BaseObjectMetadata:
             if v is not None and k not in exclude_attrs and k[0] != '_'
         }
 
-    def diff(self, source: dict) -> dict:
-        """Returns a dict diff between source and instance (target)"""
+    @staticmethod
+    def _diff_dict(local_object: dict, remote_object: dict) -> dict:
+        """Returns a recursive dict diff between local_object and remote_object dicts"""
         result = dict()
-        source_params = {k: v for k, v in source.items() if v is not None}
-        target_params = {
+        remote_object_params = {k: v for k, v in remote_object.items() if v is not None}
+        local_object_params = {
+            k: v
+            for k, v in local_object.items()
+            if v is not None and k[0] != '_'
+        }
+        for k, v in local_object_params.items():
+            if k not in remote_object_params:
+                result[k] = local_object_params[k]
+            if k in remote_object_params and remote_object_params[k] != local_object_params[k]:
+                result[k] = local_object_params[k]
+                if isinstance(remote_object_params[k], dict) and isinstance(local_object_params[k], dict):
+                    result[k] = BaseObjectMetadata._diff_dict(local_object_params[k], remote_object_params[k])
+                    if not result[k]:
+                        del result[k]
+        return result
+
+    def diff(self, remote_object: dict) -> dict:
+        """Returns a dict diff between remote_object and instance (local_object)"""
+        local_object = {
             k: v
             for k, v in vars(self).items()
             if v is not None and k[0] != '_'
         }
-        for k, v in target_params.items():
-            if k not in source_params or k in source_params and source_params[k] != target_params[k]:
-                result[k] = target_params[k]
-
-        return result
+        return self._diff_dict(local_object, remote_object)
 
 
 @dataclass
@@ -167,12 +184,18 @@ class TemplateMetadata(BaseObjectMetadata):
     cdrom_image: Optional[str] = None
     compute_id: Optional[str] = "local"
     console_auto_start: Optional[bool] = None
+    console_http_path: Optional[str] = None
+    console_http_port: Optional[str] = None
+    console_resolution: Optional[str] = None
     console_type: Optional[str] = None
     cpu_throttling: Optional[int] = None
     cpus: Optional[int] = None
     create_config_disk: Optional[bool] = None
     custom_adapters: Optional[list] = None
     default_name_format: Optional[str] = None
+    environment: Optional[str] = None
+    extra_hosts: Optional[str] = None
+    extra_volumes: Optional[list] = None
     first_port_name: Optional[str] = None
     hda_disk_image: Optional[str] = None
     hda_disk_interface: Optional[str] = None
@@ -182,6 +205,7 @@ class TemplateMetadata(BaseObjectMetadata):
     hdc_disk_interface: Optional[str] = None
     hdd_disk_image: Optional[str] = None
     hdd_disk_interface: Optional[str] = None
+    image: Optional[str] = None
     initrd: Optional[str] = None
     kernel_command_line: Optional[str] = None
     kernel_image: Optional[str] = None
@@ -200,6 +224,7 @@ class TemplateMetadata(BaseObjectMetadata):
     ram: Optional[int] = None
     replicate_network_connection_state: Optional[bool] = None
     symbol: Optional[str] = None
+    start_command: Optional[str] = None
     usage: Optional[str] = None
 
 
@@ -405,14 +430,14 @@ class NodeMetadata(BaseObjectMetadata):
         'z': 1
     }
     """
-    _READONLY_ATTRIBUTES = 'command_line', 'console', 'console_host', 'height', 'node_directory', 'node_id', 'ports',\
+    _READONLY_ATTRIBUTES = 'command_line', 'console', 'console_host', 'height', 'node_directory', 'node_id', 'ports', \
                            'project_id', 'status', 'template_id', 'width'
 
     node_id: Optional[str] = None
     node_type: Optional[str] = None
 
     command_line: Optional[str] = None
-    compute_id: Optional[str] = None
+    compute_id: Optional[str] = 'local'
     console: Optional[int] = None
     console_auto_start: Optional[bool] = None
     console_host: Optional[str] = None
@@ -485,7 +510,7 @@ class LinkMetadata(BaseObjectMetadata):
     }
     """
 
-    _READONLY_ATTRIBUTES = 'capture_compute_id', 'capture_file_name', 'capture_file_path', 'capturing', 'link_id',\
+    _READONLY_ATTRIBUTES = 'capture_compute_id', 'capture_file_name', 'capture_file_path', 'capturing', 'link_id', \
                            'project_id'
     _project = None
 
@@ -528,11 +553,11 @@ class LinkMetadata(BaseObjectMetadata):
             self._export_nodes_field()
         return super(LinkMetadata, self).dict(include_ro)
 
-    def diff(self, source: dict) -> dict:
-        result = super(LinkMetadata, self).diff(source)
+    def diff(self, remote_object: dict) -> dict:
+        result = super(LinkMetadata, self).diff(remote_object)
         if 'nodes' in result:
             del result['nodes']
-        if not Link.are_link_ends_the_same(source['nodes'], self.nodes):
+        if not Link.are_link_ends_the_same(remote_object['nodes'], self.nodes):
             result['nodes'] = self.nodes
         return result
 
@@ -557,7 +582,7 @@ class BaseObject:
         return self.__class__.__name__
 
     @property
-    def _object_id_field_name(self) -> str:
+    def object_id_field_name(self) -> str:
         """Returns GNS3 identifier field name, e.g. project_id, template_id, ..."""
         return self._object_type.lower() + '_id'
 
@@ -572,35 +597,38 @@ class BaseObject:
         """Get all GNS3 objects from server"""
         return self.server.get(url=self._endpoint_url).json()
 
-    def _get(self) -> dict:
+    def _get(self, objects=None) -> dict:
         """Get all GNS3 objects from server and returns the specified one"""
-        objects = [self.__class__(**t).metadata.dict(include_ro=True) for t in self._get_all()]
+        if not objects:
+            objects = [self.__class__(**t).metadata.dict(include_ro=True) for t in self._get_all()]
+        return self.find(objects)
 
-        object_id = self.metadata.__getattribute__(self._object_id_field_name)
+    def find(self, objects):
+        object_id = self.metadata.__getattribute__(self.object_id_field_name)
         if object_id:
             try:
-                return next(t for t in objects if t[self._object_id_field_name] == object_id)
+                return next(t for t in objects if t[self.object_id_field_name] == object_id)
             except StopIteration:
                 raise ObjectDoesNotExist(f'Cannot find {self._object_type} with id "{object_id}" on server')
 
         name = self.metadata.name
         if name:
             try:
-                return next(t for t in objects if t["name"] == name)
+                return next(t for t in objects if 'name' in t and t["name"] == name)
             except StopIteration:
                 raise ObjectDoesNotExist(f'Cannot find {self._object_type} with name "{name}" on server')
 
-        _msg: str = f"{self._object_type} metadata must provide either a name or a {self._object_id_field_name}"
+        _msg: str = f"{self._object_type} metadata must provide either a name or a {self.object_id_field_name}"
         raise InvalidParameters(_msg)
 
     @property
     def id(self):
         """Returns the GNS3 object identifier, by id first, then by name"""
-        endpoint_id = self.metadata.__getattribute__(self._object_id_field_name)
+        endpoint_id = self.metadata.__getattribute__(self.object_id_field_name)
         if endpoint_id:
             return endpoint_id
         response = self._get()
-        return response[self._object_id_field_name]
+        return response[self.object_id_field_name]
 
     @property
     def server(self):
@@ -641,18 +669,19 @@ class BaseObject:
         self.server.cache.clear()
 
     @property
-    def exists(self):
+    def exists(self, objects=None):
         """Find the object on server and returns if it exists or not"""
         try:
-            self._get()
+            self._get(objects)
         except ObjectDoesNotExist:
             return False
         return True
 
-    def diff(self) -> dict:
-        """Find the object on server (source) and returns a diff with local instance (target)"""
-        source = self._get()
-        return self.metadata.diff(source)
+    def diff(self, remote_object=None) -> dict:
+        """Find the object on server (remote_object) and returns a diff with local instance (self)"""
+        if not remote_object:
+            remote_object = self._get()
+        return self.metadata.diff(remote_object)
 
 
 class Template(BaseObject):
@@ -661,6 +690,7 @@ class Template(BaseObject):
     def __init__(self, server: Server = None, **kwargs) -> None:
         super(Template, self).__init__(**kwargs)
         self._server = server
+        self.metadata = self._MetadataClass(**kwargs)
 
     @property
     def _endpoint_url(self) -> str:
@@ -670,6 +700,10 @@ class Template(BaseObject):
     def server(self):
         """Returns the GNS3 server used by this object"""
         return self._server
+
+    def create(self) -> None:
+        if self.metadata.template_type not in ['nat', 'cloud']:
+            super(Template, self).create()
 
 
 class Project(BaseObject):
@@ -734,9 +768,10 @@ class Node(BaseObject):
             url = f"{self._endpoint_url}/{self.template.id}".replace('/nodes/', '/templates/')
         else:
             url = f"{self._endpoint_url}"
-        json = self.metadata.dict()
-        response = self.server.post(url=url, json={k: v for k, v in json.items() if k in ('name', 'x', 'y')})
+        json = {k: v for k, v in self.metadata.dict().items() if k in ('name', 'compute_id', 'x', 'y')}
+        response = self.server.post(url=url, json=json)
         self._check_status_code(response)
+        json = self.metadata.dict()
         self.metadata.update(response.json())
         self.server.cache.clear()
         # GNS3 server does not succeed at once, bug ?
@@ -821,25 +856,30 @@ class Link(BaseObject):
 
         return False
 
-    def _get(self):
+    def _get(self, objects=None):
         """Get all GNS3 objects from server and returns the specified one"""
-        objects = [self.__class__(project=self.project, **t).metadata.dict(include_ro=True) for t in self._get_all()]
+        if not objects:
+            objects = [self.__class__(project=self.project, **t).metadata.dict(include_ro=True)
+                       for t in self._get_all()]
+        return self.find(objects)
 
-        object_id = self.metadata.__getattribute__(self._object_id_field_name)
+    def find(self, objects):
+
+        object_id = self.metadata.__getattribute__(self.object_id_field_name)
         if object_id:
             try:
-                return next(t for t in objects if t[self._object_id_field_name] == object_id)
+                return next(t for t in objects if t[self.object_id_field_name] == object_id)
             except StopIteration:
                 raise ObjectDoesNotExist(f'Cannot find {self._object_type} with id "{object_id}" on server')
 
-        nodes = self.metadata.nodes # noqa
+        nodes = self.metadata.nodes  # noqa
         if nodes:
             try:
                 return next(t for t in objects if Link.are_link_ends_the_same(t['nodes'], nodes))
             except StopIteration:
                 raise ObjectDoesNotExist(f'Cannot find {self._object_type} with same ends on server')
 
-        _msg: str = f"{self._object_type} metadata must provide either nodes or a {self._object_id_field_name}"
+        _msg: str = f"{self._object_type} metadata must provide either nodes or a {self.object_id_field_name}"
         raise InvalidParameters(_msg)
 
 
@@ -885,25 +925,37 @@ class BaseObjectList(UserList):
         self.pull()
 
     def diff(self) -> dict:
-        """Returns the diff between GNS3 server (source) and local instances (target)"""
+        """Returns the diff between GNS3 server (remote_objects) and local instances (local_objects)"""
         logger.info(f'Diffing {self.__class__.__name__} ...')
-        target: list[BaseObject] = self.data
-        target_with_ids = [t for t in target if t.exists]
-        target_without_ids = [t for t in target if t not in target_with_ids]
-        target_ids = set([t.id for t in target_with_ids])
 
         try:
-            source: list[BaseObject] = self._get_remote_objects()
+            remote_objects: list[BaseObject] = self._get_remote_objects()
         except ObjectDoesNotExist:
-            source = list()
-        source_ids = set([t.id for t in source])
+            remote_objects = list()
+        remote_objects_ids = set([t.id for t in remote_objects])
+        remote_objects_metadatas = {s.id: s.metadata.dict(include_ro=True) for s in remote_objects}
 
-        delete_ids = source_ids - target_ids
-        update_ids = source_ids & target_ids
+        local_objects: list[BaseObject] = self.data
+        local_objects_with_ids = list()
+        local_objects_without_ids = list()
 
-        create_list = target_without_ids
-        delete_list = [t for t in source if t.id in delete_ids]
-        update_list = [t for t in target_with_ids if t.id in update_ids and t.diff()]
+        for t in local_objects:
+            try:
+                s = t.find(remote_objects_metadatas.values())
+                t.metadata.update({t.object_id_field_name: s[t.object_id_field_name]})
+                local_objects_with_ids.append(t)
+            except ObjectDoesNotExist:
+                local_objects_without_ids.append(t)
+
+        local_objects_ids = set([t.id for t in local_objects_with_ids])
+
+        delete_ids = remote_objects_ids - local_objects_ids
+        update_ids = remote_objects_ids & local_objects_ids
+
+        create_list = local_objects_without_ids
+        delete_list = [t for t in remote_objects if t.id in delete_ids]
+        update_list = [t for t in local_objects_with_ids
+                       if t.id in update_ids and t.diff(remote_objects_metadatas[t.id])]
 
         return {
             'create': create_list,
@@ -914,7 +966,7 @@ class BaseObjectList(UserList):
 
 class TemplateList(BaseObjectList):
     _ObjectClass = Template
-    _IGNORED_TEMPLATE_TYPES = ('nat', 'frame_relay_switch', 'atm_switch')
+    _IGNORED_TEMPLATE_TYPES = ('cloud', 'nat', 'frame_relay_switch', 'atm_switch')
 
     def __init__(self, server: Server, **kwargs) -> None:
         super(TemplateList, self).__init__(**kwargs)
@@ -924,9 +976,13 @@ class TemplateList(BaseObjectList):
     def _endpoint_url(self) -> str:
         return '/templates'
 
-    def _get(self) -> list:
-        return [t for t in super(TemplateList, self)._get()
-                if t['template_type'] not in self._IGNORED_TEMPLATE_TYPES]
+    def diff(self) -> dict:
+        """Returns the diff between GNS3 server (remote_objects) and local instances (local_objects)"""
+        result = super(TemplateList, self).diff()
+        for k in result.keys():
+            result[k] = [t for t in result[k] if t.metadata.builtin is not True
+                         and t.metadata.template_type not in self._IGNORED_TEMPLATE_TYPES]
+        return result
 
     @property
     def server(self):
