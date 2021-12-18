@@ -4,7 +4,7 @@
 # gns3-client
 
 *gns3-client* is a Python library that can be used to interact with a [GNS3 server](https://github.com/GNS3/gns3-server)
-using its HTTP REST API. A GNS3 server manages emulators such as Dynamips, VirtualBox or Qemu/KVM.
+using its HTTP REST API. A GNS3 server manages emulators or hypervisors such as Dynamips, VirtualBox or Qemu/KVM.
 
 ## Disclaimer
 
