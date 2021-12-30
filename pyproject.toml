@@ -1,3 +1,23 @@
+[tool.poetry]
+name = "gns3-client"
+version = "0.1.0"
+description = "Python API client for GNS3 network simulation tool"
+license = "MIT"
+authors = ["Olivier Desnoe <olivier@delarche.fr>"]
+readme = "README.md"
+homepage = "https://github.com/desnoe/gns3-client"
+keywords = ["gns3"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+requests = "^2.26.0"
+urllib3 = "^1.26.7"
+requests-cache = "^0.8.1"
+logzero = "^1.7.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

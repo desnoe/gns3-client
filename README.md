@@ -60,8 +60,8 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 ## Building
 
 ```
-python3 -m build  
-python3 -m twine upload --repository pypi dist/*   
+poetry build
+poetry publish
 ```
 
 ## Versioning
