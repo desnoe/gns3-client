@@ -57,6 +57,13 @@ object types have been implemented:
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct.
 
+## Building
+
+```
+python3 -m build  
+python3 -m twine upload --repository pypi dist/*   
+```
+
 ## Versioning
 
 We use [SemVer](http://semver.org/) for versioning. For the versions available, see
