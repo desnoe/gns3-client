@@ -778,6 +778,26 @@ class Node(BaseObject):
         self.metadata.update(json)
         self.update()
 
+    def start(self) -> None:
+        url = f"{self._endpoint_url}/{self.id}/start"
+        response = self.server.post(url=url, json={})
+        self._check_status_code(response)
+
+    def stop(self) -> None:
+        url = f"{self._endpoint_url}/{self.id}/stop"
+        response = self.server.post(url=url, json={})
+        self._check_status_code(response)
+
+    def reload(self) -> None:
+        url = f"{self._endpoint_url}/{self.id}/reload"
+        response = self.server.post(url=url, json={})
+        self._check_status_code(response)
+
+    def suspend(self) -> None:
+        url = f"{self._endpoint_url}/{self.id}/suspend"
+        response = self.server.post(url=url, json={})
+        self._check_status_code(response)
+
 
 class Link(BaseObject):
     _MetadataClass = LinkMetadata
