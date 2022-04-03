@@ -34,7 +34,7 @@ You'll need a [GNS3 server](https://github.com/GNS3/gns3-server) appliance or vi
 Instructions on how to install a server appliance or virtual machine can be found on
 the [GNS3 website](https://www.gns3.com/).
 
-Location of this test server is provided via these 2 environment variables:
+Location of this test server is provided via this environment variable:
 
 | Environment variable name | Description                                 |             Example             |
 |:-------------------------:|---------------------------------------------|:-------------------------------:|
@@ -79,3 +79,12 @@ project.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+
+## TODO
+
+- generate and publish doc
+- remove v2 at the end of the server URL
+- make a small tutorial
+- use black and add a badge
+- setup GitHub Actions
+- check that all directives are implemented
